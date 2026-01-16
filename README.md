@@ -6,6 +6,12 @@ This is a simple win32 app that renders a window that tests HDR stuff.
 
 ![ramp](screenshots/ramp.jpg)
 
+## Building
+
+`cargo build --release`
+
+gotta love rust
+
 ## License
 
 MIT
