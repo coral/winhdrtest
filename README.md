@@ -2,6 +2,10 @@
 
 This is a simple win32 app that renders a window that tests HDR stuff.
 
+![squares](screenshots/squares.jpg)
+
+![ramp](screenshots/ramp.jpg)
+
 ## License
 
 MIT
