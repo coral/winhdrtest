@@ -900,8 +900,7 @@ unsafe fn get_hardware_adapter(factory: &IDXGIFactory4) -> Result<IDXGIAdapter1>
     }
 }
 
-/// Creates a resource barrier without leaking COM references.
-/// Uses a raw pointer approach to avoid incrementing refcount.
+/// Creates a resource barrier.
 unsafe fn resource_barrier(
     command_list: &ID3D12GraphicsCommandList,
     resource: &ID3D12Resource,
@@ -909,21 +908,12 @@ unsafe fn resource_barrier(
     after: D3D12_RESOURCE_STATES,
 ) {
     unsafe {
-        // Get the raw interface pointer without incrementing refcount
-        use windows::core::Interface;
-        let raw_ptr = resource.as_raw();
-
-        // Create a non-owning "view" of the resource by transmuting the raw pointer
-        // This is safe because we only use it for the duration of this function call
-        // and ResourceBarrier just reads the pointer
-        let resource_view: Option<ID3D12Resource> = std::mem::transmute(raw_ptr);
-
         let barriers = [D3D12_RESOURCE_BARRIER {
             Type: D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
             Flags: D3D12_RESOURCE_BARRIER_FLAG_NONE,
             Anonymous: D3D12_RESOURCE_BARRIER_0 {
                 Transition: ManuallyDrop::new(D3D12_RESOURCE_TRANSITION_BARRIER {
-                    pResource: ManuallyDrop::new(resource_view),
+                    pResource: ManuallyDrop::new(Some(resource.clone())),
                     StateBefore: before,
                     StateAfter: after,
                     Subresource: D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
@@ -932,11 +922,6 @@ unsafe fn resource_barrier(
         }];
 
         command_list.ResourceBarrier(&barriers);
-
-        // Since we used transmute to create resource_view without incrementing refcount,
-        // we must NOT let it drop (which would decrement the refcount incorrectly).
-        // ManuallyDrop already prevents this, so we don't need to do anything else.
-        // Just let barriers go out of scope - ManuallyDrop prevents the destructor.
     }
 }
 
